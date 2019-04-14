@@ -1,5 +1,122 @@
 <html>
-<h1>test</h1>
+
+<h1 id="politicalalignmentanalysisin140characters">Political Alignment Analysis in 140 Characters</h1>
+
+<h4 id="cx4240spring2019">CX 4240, Spring 2019</h4>
+
+<h4 id="jessicabuzzellijaradhoskingaakankshapatil">Jessica Buzzelli, Jarad Hosking, Aakanksha Patil</h4>
+
+<h1 id="iproblem">I: Problem</h1>
+
+<p>Twitter is a social media platform where users' status updates (tweets) can have the ability to impact how their followers percieve events, <a href="https://www.nytimes.com/2019/04/11/us/politics/on-politics-twitter-democrats.html">especially in the realm of politics</a>. In this project, we wanted to see how accuractely we could identify users' political affiliations, with the goal of making a model that could be applied to identify like-minded public figures to a given user.</p>
+
+<p>Especially with <a href="https://www.bloomberg.com/news/articles/2018-07-27/twitter-projects-users-to-decline-profit-short-of-estimates">Twitter's ongoing decline in monthly users</a>, we hypothesize that such a tool could be used to further establish the site as a more specialized hub for political news and debate and, in turn, drive platform-unique content and reinvigorate overall site traffic. Another high potential use case could involve matching individuals with similarly-aligned local politicians in order to inspire more people to participate in non-federal elections.</p>
+
+<h1 id="iiapproach">II: Approach</h1>
+
+<p>In order to meaningfully visualize our model projections, we chose to use a Nolan Chart as our frame of reference. We extracted ground-truth information on training users (politicians) from <a href="">OnTheIssues.org</a>, and solved for unknown scores of our test users. </p>
+
+<p>An example of a Nolan Chart from our source mapping Donald Trump to a point at (.8,.2):</p>
+
+<p><img src="report_imgs/donald_trump.gif" width=400/></p>
+
+<p>Our problem lies somewhere between a clustering and a classification problem:</p>
+
+<ol>
+<li>We want to know which users are most similar to a test user, but</li>
+
+<li>Our classification "labels" are non-discrete, and</li>
+
+<li>We wanted to project onto a space where we can bring prior knowledge on political parties, schools of thought into our interpretation of the data</li>
+</ol>
+
+<h1 id="iiidataset">III: Dataset</h1>
+
+<p>Since Twitter frowns upon (but allows) its data being used to identify users based on federally protected classes such as political alignment, we have limited our test set of data to users whose public presences are based around their political commentary -- we refer to them collectively in this project as pundits.</p>
+
+<p>Using a <a href="http://www.tweepy.org/">Twitter API Python client</a> and an <a href="https://www.sqlite.org/index.html">SQLite</a> database, we were able to pull tweets from a collection of politicians and pundits with the following characteristics.</p>
+
+<p><strong>NOTE:</strong> We were not able to obtain as many training users (politicians) as ideal due to the lack of politicians with Twitter accounts active enough to have more than 2,000 tweets since the 2016 presidential election (a limit we saw necessary in case of changes in political affiliation over time). We had no problem finding active pundits on the platform, but restrained our test numbers to scale well with our set of politicians. </p>
+
+<p>Nolan quadrant breakdown of dataset:</p>
+
+<p><img src="report_imgs/flows.png" width=700/></p>
+
+<p><strong>NOTE:</strong> We were unable to find any good examples of populists for our dataset, and therefore would ideally use a different visualization convention if unbiased ground-truth data were similiarly available.</p>
+
+<p>Tweets per user demographic breakdown:</p>
+
+<p><img src="report_imgs/flows2.png" width=700/></p>
+
+<p>Before composing our feature matrix from the tweets in our database, we cleaned each tweet as follows:</p>
+
+<p><img src="report_imgs/preprocessing2.png" width=600/></p>
+
+<p>After, we converted each cleaned tweet into a sparse vector of <a href="https://nlp.stanford.edu/IR-book/html/htmledition/tf-idf-weighting-1.html">Term Frequency x Inverse Document Frequency (TF-IDF) scores</a> trained on the politicians' combined corpus. This worked by 1) excluding words not used by the polticians' accounts and to 2) minimizing the weight of words that were rarely used by multiple politicans. </p>
+
+<p>Our feature matricies had <strong>112,483 training records</strong>, <strong>67,056 testing records</strong>, <strong>43,824 unique features</strong> (same number of features in training and testing matricies), and looked something like this:</p>
+
+<p><img src="report_imgs/xtrain_xtest.png" width=550/></p>
+
+<h1 id="ivresults">IV: Results</h1>
+
+<h3 id="attempt1fullfeaturelinearregression">Attempt 1: Full-Feature Linear Regression</h3>
+
+<p>A similiar problem used <a href="https://medium.com/linalgo/predict-political-bias-using-python-b8575eedef13">logistic regression and clustering</a> to predict the bias of newspaper headlines, but we started with a linear regression in order to determine a test users' Nolan coordinates based on their relative term frequencies. </p>
+
+<p>Since we doubted an individual tweet's ability to provide quality insights on a person's overall political affiliation, we ran a cross-validation run with our original matrix as well as with the same matrix reorganized to look like this (<strong>59 training records</strong>, <strong>19 testing records</strong>, <strong>43,824 features</strong>):</p>
+
+<p><img src="report_imgs/new_matrix.png" width=600/></p>
+
+<p>We applied no dimensionality reduction methods when achieving the below results:</p>
+
+<p><img src="report_imgs/linreg_comparison3.png" width=1300/></p>
+
+<p>The better model (where the feature matrix's rows = sum of a users' tweet vectors) had an average error of 24.00 units of distance on the Nolan Chart (the difference of roughly one quadrant) with a standard deviation of 5 units. </p>
+
+<p><img src="report_imgs/linear_regression_cv.png" width=700/></p>
+
+<h3 id="attempt2featureengineeringvialatentdirichletallocationandsentimentdata">Attempt 2: Feature Engineering via Latent Dirichlet Allocation and Sentiment Data</h3>
+
+<p>Unlike <a href="https://medium.com/analytics-vidhya/twitter-sentiment-analysis-for-the-2019-election-8f7d52af1887">similar projects</a> <a href="https://ieeexplore.ieee.org/document/6897213">using Twitter data for sentiment analysis</a>, we tried to reduce our number of features in a more meaningful way via topic-sentiment analysis. </p>
+
+<p>Approaching the problem intuitively, we decided that a person's political affiliation is a combination of:</p>
+
+<ol>
+<li>The topics they care about (or in this case, tweet about most frequently), and</li>
+
+<li>Their sentiments (in this case, positive, negative, or neutral) towards those topics</li>
+</ol>
+
+<p>Using <a href="https://www.nltk.org/_modules/nltk/sentiment/vader.html">Vader sentiment analyser</a> since it was trained for <a href="https://medium.com/@sharonwoo/sentiment-analysis-with-nltk-422e0f794b8">assigning a sentiment polarity score to social media language with support for emojis, common slang, and double-negation</a>, we proceded as follows:</p>
+
+<p><img src="report_imgs/lda_flow2.png" width=1000/></p>
+
+<p>Of course, we also ran a "one vs. rest" cross validation on an LDA model that did not use the sentiment approach detailed above:</p>
+
+<p><img src="report_imgs/lda_comparisons2.png" width=1000/></p>
+
+<p>Cross validation results of the sentiment-enabled model were even more clustered than seen in Attempt 1:</p>
+
+<p><img src="report_imgs/lda_sent_results.png" width=700/></p>
+
+<h1 id="vconclusion">V: Conclusion</h1>
+
+<p>Considerations:</p>
+
+<ul>
+<li>Sentiment data may have not been the most accurate given sarcasm, passive agressiveness aimed at other users, etc. </li>
+
+<li>Very skeptical on the scalability of the regression model in Attempt 1 due to the vast number of features compared to data points; very volatile basis for a model</li>
+
+<li>Interestingly though, regression did not perform better when using PCA to reduce the number of features on either setup for the feature matrix</li>
+
+<li>Topic-based models (Attempt 2) did not perform better when using feature reduction via Latent Semantic Indexing (LSI, or LDA with truncated SVD); much worse even when reducing the number of topics</li>
+
+<li>Concerned about the very probable possibility of users not tweeting as we would expect given a certain alignment; need to get multiple users in our dataset who map to the same point to bring stability</li>
+
+<li>Regression as a means of projecting onto the chart was tricky since we lacked enough datapoints at the extremes of the chart to be able to place users towards the corners</li>
+</ul>
 
 
 </html>
