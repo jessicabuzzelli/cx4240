@@ -6,3 +6,17 @@ ground_truths.py
 *.db
 *.xml___jb_tmp___
 *.pyc
+.ipynb_checkpoints/Presentation-checkpoint.ipynb
+report_imgs/263_high_std.png
+report_imgs/beautiful4.png
+report_imgs/BOW_results.png
+report_imgs/BOW_results2.png
+report_imgs/ezgif.com-gif-maker.gif
+report_imgs/lda_comparisons.png
+report_imgs/LDA_sent_comparison.png
+report_imgs/LDA_sentiment.docx
+report_imgs/log_reg_best_results.png
+report_imgs/overall_results_topic_models.png
+report_imgs/pretty_overall.png
+report_imgs/tf_idf_best_results.png
+report_imgs/vector_table.docx

@@ -44,7 +44,7 @@ curs = conn.cursor()
 
 preprocesser = Preprocessor()
 
-sql = "select id, tweet from tweet_text;"
+sql = "select id, tweet from tweet_text where cleaned is null;"
 curs.execute(sql)
 id_tweet_list = curs.fetchall()
 

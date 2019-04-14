@@ -188,7 +188,7 @@ if __name__ == "__main__":
 
     searcher = TwitterHandler()
 
-    for handle in ['patilaakanksha']:
+    for handle in ground_truths_politicians.keys():
         tweets, user_data = searcher.getTweets(query='from:{}'.format(handle), count=200)
         searcher.exportResults(tweets, user_data, handle)
         print('finished {}'.format(handle))
