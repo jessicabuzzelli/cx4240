@@ -76,7 +76,7 @@ class VectorComparisonModel:
 
         # make testing vectors
         athing = self.vectorizer.transform(testing['tweets'])
-        print('Number of features (post-processing): {}\n'.format(athing.shape[1]))
+        # print('Number of features (post-processing): {}\n'.format(athing.shape[1]))
         testing['tfidf_vector'] = list(athing.toarray())
         testing_vecs = np.vstack(tuple([x for x in testing['tfidf_vector'].to_numpy()]))
 
@@ -89,7 +89,7 @@ class VectorComparisonModel:
 
         return ypred
 
-def main(user=None):
+def main(user=None,print_results=True):
     model = VectorComparisonModel(testuser=user)
     train_df, test_df = model.makeDataFrames()
     train_vecs, test_vecs = model.createVectors(train_df, test_df)
@@ -109,7 +109,8 @@ def main(user=None):
     nonsense = pd.Series(nonsense)
     final = pd.concat([final, nonsense], axis=1, sort=False)
 
-    print('Regression results:')
+    if print_results == True:
+        print('Regression results:')
     pd.set_option('display.max_columns', 5)
 
     final.columns = ['author_handle', 'model_error',
@@ -117,16 +118,52 @@ def main(user=None):
                      'violated_user_bounds']
 
     if user == None:
-        final = final.set_index('author_handle', drop=True)
-        print(final[['economic_score_estimate', 'social_score_estimate', 'violated_user_bounds']])
+        from plot_results import plotrunNolans2
+        #final = final.set_index('author_handle', drop=True)
+        final.index = final.author_handle
+        final.columns = ['User','Model Error','Social Score Estimate', 'Economic Score Estimate',
+                         '> 0.30 units from Expectation?']
+        if print_results == True:
+            print(final[['Economic Score Estimate', 'Social Score Estimate', '> 0.30 units from Expectation?']])
+        #final.columns = ['author_handle', 'model_error',
+        #                 's_score', 'e_score',
+        #                 'violated_user_bounds']
+        #plotrunNolans2(final[['author_handle','s_score','e_score']])
 
     else:
         from plot_results import plotrunNolans
-        print(final[['economic_score_estimate', 'social_score_estimate', 'violated_user_bounds']])
+        vals = final.values[0]
+        if print_results == True:
+            print('Test User: {}\nModel Error: {}\nEconomic Score Estimate: {}\nSocial Score Estimate: {}'.format(
+                vals[0], vals[1], vals[3], vals[2]))
+
         final.columns = ['author_handle', 'model_error',
                          's_score', 'e_score',
                          'violated_user_bounds']
-        plotrunNolans(final[['author_handle','s_score','e_score']],user)
+        return final
+        #plotrunNolans(final[['author_handle','s_score','e_score']],user)
+
+def returnRecommendations(user):
+    final = main(user, print_results=False)
+    ## Use DFs for getting distances (model errors)
+    compare_with = pd.DataFrame.from_dict(ground_truths_politicians, orient='index')
+    merged = final[['s_score','e_score']].append(compare_with)
+
+    # get test distribution
+    test_series = merged.iloc[0]
+
+    # calculate loss and get rid of rows with a negative loss
+    loss = []
+    for person in merged.index[1:]:
+        doc = merged.loc[person]
+        dist = np.linalg.norm(test_series - doc)
+        loss.append((person, dist))
+
+    sorted_loss = sorted(loss, key=lambda x: x[1])
+    best_loss = sorted_loss[:len(ground_truths_politicians.keys()) // 25]
+    print('Hi {}! We recommend that you check out these Twitter users:\n{}'.format(user,
+                                                                                 ', '.join([x[0] for x in best_loss])))
 
 if __name__ == '__main__':
-    main('realDonaldTrump')
+    #main()
+    returnRecommendations('realDonaldTrump')

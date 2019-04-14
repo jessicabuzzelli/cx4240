@@ -39,19 +39,19 @@ class Preprocessor:
 
         return lemmed_and_stemmed
 
-conn = sqlite3.connect('tweet_data.db')
-curs = conn.cursor()
-
-preprocesser = Preprocessor()
-
-sql = "select id, tweet from tweet_text where cleaned is null;"
-curs.execute(sql)
-id_tweet_list = curs.fetchall()
-
-for id, tweet in id_tweet_list:
-    clean = preprocesser.preprocess(tweet)
-    sql = """update tweet_text set cleaned = "{}" where id = {}""".format(clean, id)
-    curs.execute(sql)
-
-conn.commit()
-conn.close()
+# conn = sqlite3.connect('tweet_data.db')
+# curs = conn.cursor()
+#
+# preprocesser = Preprocessor()
+#
+# sql = "select id, tweet from tweet_text where cleaned is null;"
+# curs.execute(sql)
+# id_tweet_list = curs.fetchall()
+#
+# for id, tweet in id_tweet_list:
+#     clean = preprocesser.preprocess(tweet)
+#     sql = """update tweet_text set cleaned = "{}" where id = {}""".format(clean, id)
+#     curs.execute(sql)
+#
+# conn.commit()
+# conn.close()
