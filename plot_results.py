@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from ground_truths import ground_truths_politicians
 import warnings
 import sqlite3
+import matplotlib
+matplotlib.rcParams['figure.figsize'] = [8, 5]
 
 warnings.filterwarnings('ignore')
 
@@ -49,7 +51,6 @@ def plotrunNolans(df, testuser):
     #plt.figure(figsize=(8.0,6.0))
     #plt.savefig(r"viz\{}.png".format(testuser), dpi=100)
     plt.show()
-
 
 def datasetviz():
     conn = sqlite3.connect('tweet_data.db')
@@ -111,14 +112,12 @@ def datasetviz():
     plt.show()
 
 def plotrunNolans2(df):
-    df['Type'] = 'Model Estimation'
+    # df2 = pd.DataFrame.from_dict(ground_truths_politicians, orient='index')
+    # df2 = df2.reset_index()
+    # df2.columns = ['author_handle','s_score','e_score']
+    # df2['Type'] = 'Training User (Politician)'
 
-    df2 = pd.DataFrame.from_dict(ground_truths_politicians, orient='index')
-    df2 = df2.reset_index()
-    df2.columns = ['author_handle','s_score','e_score']
-    df2['Type'] = 'Training User (Politician)'
-
-    df1 = df.append(df2, ignore_index=True)
+    # df = df.append(df2, ignore_index=True)
 
     lines = [
         (-.1, .2, .5, .5),
@@ -135,41 +134,42 @@ def plotrunNolans2(df):
 
     ax = sns.scatterplot(x='e_score',
                          y='s_score',
-                         style='Type',
-                         hue='Type',
-                         data=df1,
-                         s=200)
+                         style='Failed',
+                         hue='Failed',
+                         data=df,
+                         s=120)
 
-    # already_written = []
-    # for line in range(0, df.shape[0]):
-    #     if df.author_handle[line] not in ground_truths_politicians:
-    #         loc = [df.e_score[line] + 0.002, df.s_score[line] + .005]
-    #         if loc not in already_written:
-    #             ax.text(loc[0],
-    #                     loc[1],
-    #                     df.author_handle[line],
-    #                     horizontalalignment='left',
-    #                     fontsize=10,
-    #                     color='darkslategrey')
-    #             already_written.append(loc)
-    #         else:
-    #             while loc in already_written:
-    #                 loc = [loc[0], loc[1] + .02]
-    #             ax.text(loc[0],
-    #                     loc[1],
-    #                     df.author_handle[line],
-    #                     horizontalalignment='left',
-    #                     fontsize=10,
-    #                     color='darkslategrey')
-    #             already_written.append(loc)
+    already_written = []
+    df = df[df['Failed'] == True]
+    for line in range(0, df.shape[0]):
+        if df.author_handle[line] not in ground_truths_politicians:
+            loc = [df.e_score[line] + 0.002, df.s_score[line] + .005]
+            if loc not in already_written:
+                ax.text(loc[0],
+                        loc[1],
+                        df.author_handle[line],
+                        horizontalalignment='left',
+                        fontsize=10,
+                        color='darkslategrey')
+                already_written.append(loc)
+            else:
+                while loc in already_written:
+                    loc = [loc[0], loc[1] + .02]
+                ax.text(loc[0],
+                        loc[1],
+                        df.author_handle[line],
+                        horizontalalignment='left',
+                        fontsize=10,
+                        color='darkslategrey')
+                already_written.append(loc)
 
     ax.set(ylabel='Ground Truth Social %', xlabel='Ground Truth Economic %')
-    ax.set_title('Pundits\' Political Affiliation Estimation via Linear Regression over By-User Feature Matrix')
+    ax.set_title('Pundits\' Model Estimations via Linear Regression + PCA')
     plt.ylim(-.1, 1.1)
     plt.xlim(-.1, 1.1)
     ax.grid(True)
     ax.set_aspect(1)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     #plt.figure(figsize=(8.0,6.0))
     #plt.savefig(r"viz\{}.png".format(testuser), dpi=100)
     plt.show()
