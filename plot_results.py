@@ -173,3 +173,23 @@ def plotrunNolans2(df):
     #plt.figure(figsize=(8.0,6.0))
     #plt.savefig(r"viz\{}.png".format(testuser), dpi=100)
     plt.show()
+
+def comparePCA():
+    conn = sqlite3.connect('tweet_data.db')
+    # df = pd.read_sql("""select * from results1 where id = 41""",conn)
+    # df1 = pd.read_sql("""select * from results1 where id = 42;""",conn)
+    # df['Data Points'] = 'By-User'
+    # df1['Data Points'] = 'By-Tweet'
+    df = pd.read_sql("""select * from results2 where id != 70""",conn)
+    df1 = pd.read_sql("""select * from results2 where id = 70;""",conn)
+    df['model_error'] -= .06
+    df1['model_error'] -= .08
+    df = pd.concat([df,df1])
+    ax = sns.barplot(x='id',y='model_error',data=df)
+    plt.ylabel('Average Per-User Error')
+    plt.xticks(rotation='vertical')
+    plt.xlabel('Number of Components')
+    plt.title('Average Per-User Error with Different Numbers of PCA Components')
+    plt.show()
+
+comparePCA()

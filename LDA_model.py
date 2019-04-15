@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn import linear_model
-from nonsense_tester import returnNonsense
 
 def getTweets(handle, RTs=True, sentiment=None, limit=False, exclude=None):
     connection = sqlite3.connect('tweet_data.db')
@@ -24,7 +23,6 @@ def getTweets(handle, RTs=True, sentiment=None, limit=False, exclude=None):
 
     connection.close()
     return sub('\n', '', ' '.join(all_tweets['cleaned'].tolist()))
-
 
 class LDA:
     def __init__(self, TFIDF=True, ignore=tuple(), limit=0, sentiment=None, RTs=True):

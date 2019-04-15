@@ -27,11 +27,12 @@ def getTweets(handle, RTs=True, sentiment=None, limit=0, exclude=None):
     return sub('\n', '', ' '.join(all_tweets['cleaned'].tolist()))
 
 class VectorComparisonModel:
-    def __init__(self, testuser=None, TFIDF=True, ignore=tuple(), limit=0, sentiment=None, RTs=True):
+    def __init__(self, testuser=None, TFIDF=True, ignore=tuple(), limit=0, sentiment=None, RTs=True, n_comps=0):
         self.rts = RTs
         self.sentiment = sentiment
         self.limit = limit
         self.ignore = ignore
+        self.n_comps = n_comps
 
         if testuser == None:
             self.training_users = [x for x in ground_truths_politicians.keys() if x not in ignore]
@@ -66,7 +67,7 @@ class VectorComparisonModel:
 
         return training_users_tweets_df, test_users_tweets_df
 
-    def createVectors(self, training, testing, pca=False):
+    def createVectors(self, training, testing, pca=True):
         training['tweets'] = training['cleaned']
         testing['tweets'] = testing['cleaned']
 
@@ -85,7 +86,7 @@ class VectorComparisonModel:
         testing_vecs = np.vstack(tuple([x for x in testing['tfidf_vector'].to_numpy()]))
 
         if pca == True:
-            reducer = PCA(n_components=75)
+            reducer = PCA(n_components=self.n_comps)
             training_vecs = reducer.fit_transform(training_vecs)
             testing_vecs = reducer.transform(testing_vecs)
 
@@ -98,8 +99,8 @@ class VectorComparisonModel:
 
         return ypred
 
-def main(user=None, print_results=True, rec=False):
-    model = VectorComparisonModel(testuser=user, RTs=False)   # todo - get rid of this
+def main(user=None, print_results=True, rec=False, comps=0, save=False):
+    model = VectorComparisonModel(testuser=user, n_comps=comps)   # todo - get rid of this
     train_df, test_df = model.makeDataFrames()
     train_vecs, test_vecs = model.createVectors(train_df, test_df)
     ypred = pd.DataFrame(model.runRegression(train_vecs, test_vecs))
@@ -140,7 +141,18 @@ def main(user=None, print_results=True, rec=False):
         else:
             # print('Users who failed to fall within 0.3 units from our personal estimates are shown below:')
             final.columns = ['author_handle','dist','s_score','e_score','Failed']
-            plotrunNolans2(final[['author_handle','s_score','e_score','Failed']])
+            if save != False:
+                conn = sqlite3.connect('tweet_data.db')
+                curs = conn.cursor()
+                sql = """insert into results2 (id, author_handle, model_error, s_score, e_score, nonsense) VALUES (?,?,?,?,?,?);"""
+                for author, dist,s_score,e_score,failed in final.values:
+                    # print([author,dist,s_score,e_score,failed])
+                    curs.execute(sql,(save,author,dist,s_score,e_score,failed))
+                conn.commit()
+                conn.close()
+
+            else:
+                plotrunNolans2(final[['author_handle','s_score','e_score','Failed']])
 
     else:
         from plot_results import plotrunNolans
@@ -179,5 +191,6 @@ def getRecommendations(user):
                                                                                  ', '.join([x[0] for x in best_loss])))
 
 if __name__ == '__main__':
-    main(print_results=False)
+    for n in [5,10,15,25,30,40,50,60,70,80,90,100,120]:
+        main(print_results=False, comps=n, save=n)
     #returnRecommendations('realDonaldTrump')
