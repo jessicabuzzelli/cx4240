@@ -10,11 +10,11 @@ def getTweets(handle, RTs=True, sentiment=None, limit=False, exclude=None):
     connection = sqlite3.connect('tweet_data.db')
 
     sql = "select cleaned from tweet_text where author_handle = '{}'".format(handle)
-    if RTs == False:
+    if RTs is False:
         sql += " and tweet not like '%RT%'"
-    if sentiment != None:
+    if sentiment:
         sql += " and sentiment = '{}'".format(sentiment)
-    if exclude != None:
+    if exclude:
         sql += "and author_handle not in {}".format(str(exclude))
     if limit != 0:
         sql += " limit {}".format(limit)
@@ -25,7 +25,7 @@ def getTweets(handle, RTs=True, sentiment=None, limit=False, exclude=None):
     return sub('\n', '', ' '.join(all_tweets['cleaned'].tolist()))
 
 class LDA:
-    def __init__(self, TFIDF=True, ignore=tuple(), limit=0, sentiment=None, RTs=True):
+    def __init__(self, tfidf=True, ignore=tuple(), limit=0, sentiment=None, RTs=True):
         self.rts = RTs
         self.sentiment = sentiment
         self.limit = limit
@@ -38,7 +38,7 @@ class LDA:
 
         self.ignore = ignore
 
-        if TFIDF == True:
+        if tfidf == True:
             self.vectorizer = TfidfVectorizer()
         else:
             self.vectorizer = CountVectorizer()
@@ -99,7 +99,7 @@ class LDA:
         return ypred
 
 def main(num=6):
-    model = LDA(TFIDF=True)
+    model = LDA(tfidf=True)
     train_df, test_df = model.makeDataFrames()
     train_vecs, test_vecs = model.createVectors(train_df, test_df)
     xtrain, xtest = model.runLDA(train_vecs,test_vecs, num_topics=num)
