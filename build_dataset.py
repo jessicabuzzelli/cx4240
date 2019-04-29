@@ -4,11 +4,9 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from ground_truths import ground_truths_politicians, ground_truths_pundits
 import api_keys
 
-
 class TwitterHandler(object):
 
     def __init__(self):
-        # rate limit: 15 calls per 15 minute window
         __access_token__ = api_keys.access_token
         __access_secret__ = api_keys.access_secret
         __consumer_key__ = api_keys.consumer_key
@@ -27,12 +25,12 @@ class TwitterHandler(object):
         self.conn = sqlite3.connect('tweet_data.db')
         self.cursor = self.conn.cursor()
 
-        # create tweet table if not exists
+        # ensure tweet table exists
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS tweet_text 
         (id TEXT PRIMARY KEY, author_handle TEXT, tweet TEXT, sentiment TEXT, pos_score REAL, neg_score REAL,
         neu_score REAL, compound_score REAL);''')
 
-        # create user table if not exists
+        # ensure user table exists
         # cursor.execute('''DROP TABLE IF EXISTS user;''') # if need to refresh user stats
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS user 
         (author_handle TEXT PRIMARY KEY, follower_count INTEGER, description TEXT, user_id INTEGER,
@@ -41,11 +39,11 @@ class TwitterHandler(object):
         self.conn.commit()
 
     def getsentiment(self, tweet):
+        # strip excess whitespace, this step might be unnecessary
         tweet = tweet.replace('\n', ' ')
         tweet = tweet.replace('\t', ' ')
 
-        # polarity score of the tweet = weighted average of polarity of comprising sentences
-
+        # get polarity scores from Vader
         score = self.analyser.polarity_scores(tweet)
 
         # Assign presiding sentiment
@@ -64,35 +62,26 @@ class TwitterHandler(object):
         try:
             search_results = []
 
-            # make initial request for most recent tweets (200 is the maximum allowed count)
-            new_tweets = self.api.user_timeline(screen_name=query[5:],
+            # make initial request for most recent tweets (maximum allowed count = 200)
+            new_tweets = self.api.user_timeline(screen_name=query,
                                                 count=count,
-                                                tweet_mode='extended')
-
-            # save most recent tweets
+                                                tweet_mode='extended')  # tweets are truncated to 180 chars by default
             search_results.extend(new_tweets)
 
-            # save the id of the oldest tweet less one
+            # save id of the youngest tweet -- this will become oldest tweet in while loop
             oldest = search_results[-1].id - 1
 
-            while len(new_tweets) > 0:
-                # all subsequent requests use the max_id param to prevent duplicates
-                new_tweets = self.api.user_timeline(screen_name=query[5:],
+            while len(new_tweets) > 0:  # keep pulling in tweets in increments of 200 until none remain
+                new_tweets = self.api.user_timeline(screen_name=query,
                                                     count=200,
                                                     max_id=oldest,
                                                     tweet_mode='extended')
 
-                # save most recent tweets
+                # add new tweets and reset max_id value
                 search_results.extend(new_tweets)
-
-                # update the id of the oldest tweet less one
                 oldest = search_results[-1].id - 1
 
-            # search_results = self.api.search(q=query, tweet_mode = 'extended', count=count)
-            # operates via searching for 100 most recent tweets matching "from:handle", does NOT truncate tweets
-            # search_results = self.api.user_timeline(id=query[5:])
-            # format user data from info retrieved with the first tweet of the query
-
+            # get user metadata from a tweet
             atweet = search_results[0]
             user_data = {'author_handle': atweet.user.screen_name, 'follower_count': atweet.user.followers_count,
                          'description': atweet.user.description, 'user_id': atweet.user.id, 'name': atweet.user.name}
@@ -105,18 +94,14 @@ class TwitterHandler(object):
                 except AttributeError:
                     parsed_tweet['text'] = tweet.text
 
+                # assign sentiment polarity scores
                 parsed_tweet['sentiment'], parsed_tweet['pos'], parsed_tweet['neg'], parsed_tweet['neu'], parsed_tweet[
                     'compound'] = self.getsentiment(parsed_tweet['text'])
+
                 parsed_tweet['date'] = tweet.created_at
                 parsed_tweet['id'] = tweet.id
 
-                # appending parsed tweet to tweets list
-                if tweet.retweet_count > 0:
-                    # if tweet has retweets, ensure that it is appended only once
-                    if parsed_tweet not in tweets:
-                        tweets.append(parsed_tweet)
-                else:
-                    tweets.append(parsed_tweet)
+                tweets.append(parsed_tweet)
 
             # return parsed tweets
             return tweets, user_data
@@ -193,7 +178,7 @@ if __name__ == '__main__':
     searcher = TwitterHandler()
 
     for handle in ground_truths_politicians.keys():
-        tweets, user_data = searcher.gettweets(query='from:{}'.format(handle), count=200)
+        tweets, user_data = searcher.gettweets(query=handle, count=200)
         searcher.exportresults(tweets, user_data, handle)
         print('finished {}'.format(handle))
 

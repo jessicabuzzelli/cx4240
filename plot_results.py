@@ -5,17 +5,19 @@ from ground_truths import ground_truths_politicians
 import warnings
 import sqlite3
 import matplotlib
-matplotlib.rcParams['figure.figsize'] = [8, 5]
 
-warnings.filterwarnings('ignore')
 
 # author_handle : (social %, economic %, error)
+matplotlib.rcParams['figure.figsize'] = [8, 5]
+warnings.filterwarnings('ignore')
+
+
 def plotrunNolans(df, testuser):
     df['Type'] = 'Model Estimation'
 
     df2 = pd.DataFrame.from_dict({testuser: ground_truths_politicians[testuser]}, orient='index')
     df2 = df2.reset_index()
-    df2.columns = ['author_handle','s_score','e_score']
+    df2.columns = ['author_handle', 's_score', 'e_score']
     df2['Type'] = 'Politician'
 
     df1 = df.append(df2, ignore_index=True)
@@ -48,9 +50,9 @@ def plotrunNolans(df, testuser):
     ax.grid(True)
     ax.set_aspect(1)
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    #plt.figure(figsize=(8.0,6.0))
-    #plt.savefig(r"viz\{}.png".format(testuser), dpi=100)
+    # plt.savefig(r"viz\{}.png".format(testuser), dpi=100)
     plt.show()
+
 
 def datasetviz():
     conn = sqlite3.connect('tweet_data.db')
@@ -75,30 +77,12 @@ def datasetviz():
 
     for x1, y1, x2, y2 in lines:
         plt.plot([x1, y1], [x2, y2], 'k-', color='black')
-        #ax.plot(x1, y1, x2, y2, marker='o')
 
     ax = sns.scatterplot(x="e_score",
                          y='s_score',
                          hue='Nolan Chart Classification',
-                         hue_order=['Left Liberal','Centrist','Libertarian','Right Conservative','Populist'],
-                         #size='''Number of Users at a Given Point''',
-                         #sizes=(100,650),
+                         hue_order=['Left Liberal','Centrist','Libertarian','Right Conservative', 'Populist'],
                          data=df)
-
-    # locs = [
-    #         [.25,.1,'Liberal'],
-    #         [],
-    #         [],
-    #         []
-    #         ]
-    #
-    # for loc in locs:
-    #     ax.text(loc[0],
-    #             loc[1],
-    #             loc[3],
-    #             horizontalalignment='center',
-    #             fontsize=11,
-    #             color='darkslategrey')
 
     plt.ylabel('Ground Truth Social %')
     plt.xlabel('Ground Truth Economic %')
@@ -110,6 +94,7 @@ def datasetviz():
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     # ax.get_legend().set_visible(False)
     plt.show()
+
 
 def plotrunNolans2(df):
     # df2 = pd.DataFrame.from_dict(ground_truths_politicians, orient='index')
@@ -170,9 +155,10 @@ def plotrunNolans2(df):
     ax.grid(True)
     ax.set_aspect(1)
     # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    #plt.figure(figsize=(8.0,6.0))
-    #plt.savefig(r"viz\{}.png".format(testuser), dpi=100)
+    # plt.figure(figsize=(8.0,6.0))
+    # plt.savefig(r"viz\{}.png".format(testuser), dpi=100)
     plt.show()
+
 
 def comparePCA():
     conn = sqlite3.connect('tweet_data.db')
@@ -180,8 +166,8 @@ def comparePCA():
     # df1 = pd.read_sql("""select * from results1 where id = 42;""",conn)
     # df['Data Points'] = 'By-User'
     # df1['Data Points'] = 'By-Tweet'
-    df = pd.read_sql("""select * from results2 where id != 70""",conn)
-    df1 = pd.read_sql("""select * from results2 where id = 70;""",conn)
+    df = pd.read_sql("""select * from results2 where id != 70""", conn)
+    df1 = pd.read_sql("""select * from results2 where id = 70;""", conn)
     df['model_error'] -= .06
     df1['model_error'] -= .08
     df = pd.concat([df,df1])
@@ -191,5 +177,3 @@ def comparePCA():
     plt.xlabel('Number of Components')
     plt.title('Average Per-User Error with Different Numbers of PCA Components')
     plt.show()
-
-comparePCA()

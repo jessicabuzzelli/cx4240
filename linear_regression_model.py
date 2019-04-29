@@ -38,21 +38,19 @@ class VectorComparisonModel:
 
     def makedataframes(self):
         # training df
-        training_users_tweets_dict = {x: gettweets(x, self.rts, self.sentiment, self.limit, self.ignore)
+        training_users_tweets_dict = {x: get_tweets(x, self.rts, self.sentiment, self.limit, self.ignore)
                                       for x in self.training_users if x not in self.ignore}
         training_users_tweets_df = pd.DataFrame.from_dict(training_users_tweets_dict, orient='index',
                                                           columns=['cleaned'])
 
         # testing df
-        test_users_tweets_dict = {x: gettweets(x, self.rts, self.sentiment, self.limit, self.ignore)
+        test_users_tweets_dict = {x: get_tweets(x, self.rts, self.sentiment, self.limit, self.ignore)
                                   for x in self.test_users if x not in self.ignore}
         test_users_tweets_df = pd.DataFrame.from_dict(test_users_tweets_dict, orient='index', columns=['cleaned'])
 
         return training_users_tweets_df, test_users_tweets_df
 
     def createvectors(self, training, testing, pca=True, topic_model=False, n_topics=8, lsi=False):
-        # fit vectorizer
-        # self.vectorizer.fit(training['cleaned'].append(testing['cleaned']))
         self.vectorizer.fit(testing['cleaned'])
 
         # make training vectors
@@ -61,7 +59,7 @@ class VectorComparisonModel:
 
         # make testing vectors
         athing = self.vectorizer.transform(testing['cleaned'])
-        # print('Number of features (post-processing): {}\n'.format(athing.shape[1]))
+        # print('Number of features (post-processing): {}\n'.format(athing.shape[1]))  # optional
         testing['tfidf_vector'] = list(athing.toarray())
         testing_vecs = np.vstack(tuple([x for x in testing['tfidf_vector'].to_numpy()]))
 
@@ -80,8 +78,7 @@ class VectorComparisonModel:
 
             training_vecs = model.fit_transform(training_vecs)
             testing_vecs = model.transform(testing_vecs)
-        print(training_vecs)
-        print(testing_vecs)
+
         return training_vecs, testing_vecs
 
     def runregression(self, xtrain, xtest):
@@ -92,7 +89,7 @@ class VectorComparisonModel:
         return ypred
 
 
-def gettweets(handle, rts=True, sentiment=None, limit=0, exclude=None):
+def get_tweets(handle, rts=True, sentiment=None, limit=0, exclude=None):
     connection = sqlite3.connect('tweet_data.db')
 
     sql = "select cleaned from tweet_text where author_handle = '{}'".format(handle)
@@ -112,11 +109,13 @@ def gettweets(handle, rts=True, sentiment=None, limit=0, exclude=None):
 
 
 def main(user=None, print_results=True, rec=False, comps=0, save=False):
+    # run model
     model = VectorComparisonModel(testuser=user, n_comps=comps)
     train_df, test_df = model.makedataframes()
     train_vecs, test_vecs = model.createvectors(train_df, test_df)
     ypred = pd.DataFrame(model.runregression(train_vecs, test_vecs))
 
+    # get model error as a vector distance
     dist = ((ypred - model.ytest) ** 2).sum(axis=1) ** .5
 
     final = pd.concat([pd.Series([x for x in model.test_users]),
@@ -131,18 +130,16 @@ def main(user=None, print_results=True, rec=False, comps=0, save=False):
     final.columns = ['author_handle', 'dist',
                      'social_score_estimate', 'economic_score_estimate']
 
-    nonsense2 = []
+    nonsense = []
     for author, error, s_score, e_score in final.itertuples(index=False):
-        nonsense2.append(returnNonsense(author, s_score, e_score))
+        nonsense.append(returnNonsense(author, s_score, e_score))
 
-    failed = pd.Series(nonsense2)
+    failed = pd.Series(nonsense)
 
     final = pd.concat([final, failed], axis=1, sort=False)
-    # nonsense = [x[0] for x in final[final['Failed'] == True].values]
 
     if user is None:
         from plot_results import plotrunNolans2
-        # final = final.set_index('author_handle', drop=True)
         final.index = final.author_handle
         final.columns = ['User', 'Model Error', 'Social Score Estimate', 'Economic Score Estimate', 'Failed']
         if print_results:
@@ -151,7 +148,6 @@ def main(user=None, print_results=True, rec=False, comps=0, save=False):
         if rec:
             return final
         else:
-            # print('Users who failed to fall within 0.3 units from our personal estimates are shown below:')
             final.columns = ['author_handle', 'dist', 's_score', 'e_score', 'Failed']
             if save:
                 conn = sqlite3.connect('tweet_data.db')
@@ -159,7 +155,6 @@ def main(user=None, print_results=True, rec=False, comps=0, save=False):
                 sql = """insert into results2 (id, author_handle, model_error, s_score, e_score, nonsense)
                          VALUES (?,?,?,?,?,?);"""
                 for author, dist, s_score, e_score, failed in final.values:
-                    # print([author,dist,s_score,e_score,failed])
                     curs.execute(sql, (save, author, dist, s_score, e_score, failed))
                 conn.commit()
                 conn.close()
@@ -184,11 +179,13 @@ def main(user=None, print_results=True, rec=False, comps=0, save=False):
 
 def getrecommendations(user):
     final = main(user, print_results=False, rec=True)
-    # Use DFs for getting distances (model errors)
+
+    # find most similiar training users via row-wise comparison
     final.columns = ['author_handle', 'error', 0, 1, 'nonsense']
     final = final[[0, 1]]
     compare_with = pd.DataFrame.from_dict(ground_truths_politicians, orient='index')
     merged = final.append(compare_with)
+
     # get test distribution
     test_series = merged.iloc[0]
 
@@ -207,6 +204,4 @@ def getrecommendations(user):
 
 if __name__ == '__main__':
     # returnRecommendations('realDonaldTrump')
-    # for n in [5, 10, 15, 25, 30, 40, 50, 60, 70, 80, 90, 100, 120]:
-    #     main(print_results=False, comps=n, save=n)
     main()
