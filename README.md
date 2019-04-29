@@ -24,6 +24,6 @@ This project respected Twitter's advisory on using its data to classify users ba
 as political affiliation via only using tweets from elected officials or professional political commentators in our 
 dataset and models. 
 
-Our estimates tend to assign users to the "centrist" area on the Nolan Chart and our methods could 
+My estimates tend to assign users to the "centrist" area on the Nolan Chart and our methods could 
 be improved via implementing ensemble modeling, abandoning regression altogether via a random forest classifier, or
 reframing the project to a clustering over a continuum defined by the most extreme training users. 
