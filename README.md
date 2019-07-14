@@ -1,12 +1,11 @@
-This is a project for CX 4240: Introduction to Computational Data Analysis at Georgia Tech, taught in Spring 2019 by Dr. Mahdi Roozbahani. 
+This is a project for CX 4240: Computational Data Analysis at Georgia Tech, taught in Spring 2019 by Dr. Mahdi Roozbahani. 
 
-* final_presentation is a jupyter notebook covering key results from our models and overall approach to identifying users' political alignment via comparing their tweets to politicians with known political affiliations.
+* final_presentation is a notebook covering key results from our models and overall approach to identifying users' political alignment via comparing their tweets to politicians with known political affiliations.
 
 * build_dataset pulls in tweets to a local SQLite database using a master dictionary mapping Twitter users to social and economic
 "ground truth" scores from [OnTheIssues.org](). Twitter API keys and tokens can be obtained [here](https://developer.twitter.com/).
  
-* preprocess_tweets is a lazy fix for build_dataset that adds a column 
-corresponding to the post-processing tokens of each tweet in the database. 
+* preprocess_tweets is a lazy fix for build_dataset that adds a column corresponding to the post-processing tokens of each tweet in the database. 
 
 * linear_regression_model's `main` function can accept a user's Twitter handle as a parameter to find a Nolan Chart point
 estimation based on TF-IDF vectorized data (xtrain from dataset politicians' tweets, xtest from user's tweets). User must 
@@ -24,6 +23,6 @@ This project respected Twitter's advisory on using its data to classify users ba
 as political affiliation via only using tweets from elected officials or professional political commentators in our 
 dataset and models. 
 
-My estimates tend to assign users to the "centrist" area on the Nolan Chart and our methods could 
+My estimates tend to assign users to the "centrist" area on the Nolan Chart and the methods could 
 be improved via implementing ensemble modeling, abandoning regression altogether via a random forest classifier, or
 reframing the project to a clustering over a continuum defined by the most extreme training users. 
